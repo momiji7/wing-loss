@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 from .utils import load_state_dict_from_url
 
 
@@ -113,7 +114,7 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000, zero_init_residual=False,
+    def __init__(self, block, layers, num_classes=1000, out_classes=68*2, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None):
         super(ResNet, self).__init__()
@@ -123,6 +124,7 @@ class ResNet(nn.Module):
 
         self.inplanes = 64
         self.dilation = 1
+        
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
             # the 2x2 stride with a dilated convolution instead
@@ -146,6 +148,7 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.out_fc = nn.Linear(num_classes, out_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -201,7 +204,8 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = x.reshape(x.size(0), -1)
-        x = self.fc(x)
+        x = F.relu(self.fc(x))
+        x = self.out_fc(x)
 
         return x
 
