@@ -1,0 +1,6 @@
+__pycache__
+snapshots
+*.jpg
+*.png
+test
+runs

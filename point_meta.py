@@ -1,4 +1,5 @@
-
+import numpy as np
+import copy, math
 
 
 
@@ -10,7 +11,6 @@ class Point_Meta():
   def __init__(self, num_point, points, box):
 
     self.num_point = num_point
-    assert len(box.shape) == 1 and box.shape[0] == 4, 'The shape of box is not right : {}'.format( box )
     self.box = box.copy()
     if points is None:
       self.points = points

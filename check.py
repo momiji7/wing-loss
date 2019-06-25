@@ -1,4 +1,3 @@
-
 from tensorboardX import SummaryWriter
 from datasets import GeneralDataset
 import transforms
@@ -6,9 +5,25 @@ import torch
 from resnet import *
 from wingloss import wing
 from compute_nme import compute_nme
+import cv2
 from basic_args import obtain_args as obtain_basic_args
 import datetime
 from logger import Logger
+
+
+
+def draw_points(img, pts, color=(255, 255, 0), radius=1, thickness=1, lineType=16, shift=4):
+    
+    draw_multiplier = 1<<shift
+    for idx in pts:
+        pt = [int(round(p*draw_multiplier)) for p in idx]  # for subpixel
+        cv2.circle(img, tuple(pt), radius*draw_multiplier, color, 3, lineType, shift)
+        cv2.circle(img, tuple(pt), radius*draw_multiplier, (255, 255, 0), thickness, lineType, shift)
+
+
+
+
+
 
 
 def train(args):
@@ -38,7 +53,7 @@ def train(args):
   if args.rotate_max:
     train_transform += [transforms.AugRotate(args.rotate_max)]
   train_transform += [transforms.AugCrop(args.crop_width, args.crop_height, args.crop_perturb_max, mean_fill)]
-  train_transform += [transforms.ToTensor(), normalize]
+  train_transform += [transforms.ToTensor()]
   train_transform  = transforms.Compose( train_transform )
 
   eval_transform  = transforms.Compose([transforms.PreCrop(args.pre_crop_expand), transforms.TrainScale2WH((args.crop_width, args.crop_height)),  transforms.ToTensor(), normalize])
@@ -47,15 +62,7 @@ def train(args):
   train_data = GeneralDataset(args.num_pts, train_transform, args.train_lists)
   train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, pin_memory=True)
 
-  # Evaluation Dataloader
-  eval_loaders = []
-
-  for eval_ilist in args.eval_lists:
-    eval_idata = Dataset(args.num_pts, eval_transform, eval_ilist)
-    eval_iloader = torch.utils.data.DataLoader(eval_idata, batch_size=args.batch_size, shuffle=False,
-                                                 num_workers=args.workers, pin_memory=True)
-    eval_loaders.append((eval_iloader, False))
-    
+  
     
   net = resnet50(out_classes = args.num_pts*2)
   logger.log("=> network :\n {}".format(net))
@@ -86,87 +93,40 @@ def train(args):
     logger.log("=> do not find the last-info file : {:}".format(last_info))
     start_epoch = 0 
     
-  for epoch in range(start_epoch, args.epochs):
-    scheduler.step()
-    
-    net.train()
-    
-    # train
-    img_prediction = []
-    img_target = []
-    train_losses = AverageMeter()
+  print('--------------', len(train_loader))
+  for epoch in range(3):
     for i , (inputs, target) in enumerate(train_loader):
-        
-      inputs = inputs.cuda()
-      target = target.cuda()
-        
-      prediction = net(inputs)
-      
-      loss = wing(args, prediction, target) 
-      train_losses.update(loss.item(), inputs.size(0))
-      
-      img_prediction.append(prediction)
-      img_target.append(target)
-      
-        
-      optimizer.zero_grad()
-      loss.backward()
-      optimizer.step()
-        
-      if i % args.print_freq == 0 or i+1 == len(loader):
-        logger.log('[train Info]: [epoch-{:}-{:}][{:04d}/{:04d}][Loss:{4.2f}').format(epoch, args.epochs, i, len(loader), loss)
+
+      nums_img = inputs.size()[0]
+      print(target.size())
+      for j in range(nums_img): 
+        temp_img = inputs[j].permute(1,2,0)
+        temp_img = temp_img.mul(255).numpy()
+        temp_img = cv2.cvtColor(temp_img, cv2.COLOR_RGB2BGR)
+
+        pts = []
+        for d in range(81):
+          pts.append((target[j][0][2*d].item(), target[j][0][2*d+1].item()))
+        print('0000000000000000000')
+        print(pts)
+        draw_points(temp_img, pts, (0, 255, 255))
+        cv2.imwrite('{}-{}.jpg'.format(epoch,j), temp_img)
+
+
+  for a, v in enumerate(train_data.data_value):
+   
+    image = cv2.imread(v['image_path'])
+    meta = v['meta']
+    pts = []
+    for d in range(81):
+      pts.append((meta.points[0, d], meta.points[1, d]))
+    draw_points(image, pts, (0, 255, 255))
+    cv2.imwrite('ori_{}.jpg'.format(a), image)
      
-     
-     train_nme = compute_nme(args.num_pts, img_prediction, img_target)
-     logger.log('epoch {:02d} completed!')
-     logger.log('[train Info]: [epoch-{:}-{:}][Avg Loss:{:.6f}][NME:{:.2f}]'.format(epoch, args.epochs, train_losses.avg, train_nme*100)
-         
-     writer.add_scalar('Average Loss', train_losses.avg, epoch)
-     writer.add_scalar('NME', train_nme*100, epoch) # traing data nme
-     
-     # save checkpoint           
-     filename = 'epoch-{:}-{:}.pth'.format(epoch, args.epochs)            
-     torch.save({
-      'epoch': epoch,
-      'args' : deepcopy(args),
-      'arch' : model_config.arch,
-      'scheduler' : scheduler.state_dict(),
-      'optimizer' : optimizer.state_dict(),
-     }, filename)  
-     logger.log('save checkpoint into {}'.format(filename))
-     last_info = torch.save({
-      'epoch': epoch,
-      'last_checkpoint': filename 
-     }, logger.last_info())
-                
-     # eval           
-     logger.log('Basic-Eval-All evaluates {:} dataset'.format(len(eval_loaders)))
     
-     for i, loader in enumerate(eval_loaders):
-                
-       eval_losses = AverageMeter()
-       eval_prediction = []
-       eval_target = []         
-       with torch.no_grad():
-         net.eval()
-         for i_batch , (inputs, target) enumerate(loader):       
-           inputs = inputs.cuda()
-           target = target.cuda()
-           prediction = net(inputs)
-           loss = wing(args, prediction, target) 
-           eval_losses.update(loss.item(), inputs.size(0))
-           eval_prediction.append(prediction)
-           eval_target.append(target)
-           if i_batch % args.print_freq == 0 or i+1 == len(loader):
-             logger.log('[Eval Info]: [epoch-{:}-{:}][{:04d}/{:04d}][Loss:{4.2f}').format(epoch, args.epochs, i, len(loader), loss)
-       eval_nme = compute_nme(args.num_pts, eval_prediction, eval_target)
-       logger.log('[Eval Info]: [evaluate the {:}/{:}-th dataset][epoch-{:}-{:}][Avg Loss:{:.6f}][NME:{:.2f}]'.format(i, eval_loaders ,epoch, args.epochs, eval_losses.avg, eval_nme*100) 
-       writer.add_scalar('eval_nme/{}'.format(i), eval_nme*100, epoch)
-    
-   logger.close()
-    
+  
+
 
 if __name__ == '__main__':
    args = obtain_basic_args()
    train(args)
-  
