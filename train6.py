@@ -10,6 +10,7 @@ from logger import Logger
 from meter import AverageMeter
 from wingloss import wing_loss
 from copy import deepcopy
+from cnn6 import Net
 
 def train(args):
   
@@ -58,7 +59,8 @@ def train(args):
     eval_loaders.append(eval_iloader)
     
     
-  net = resnet50(out_classes = args.num_pts*2, pretrained=True)
+  net = Net(args)
+
   logger.log("=> network :\n {}".format(net))
     
   logger.log('arguments : {:}'.format(args))
@@ -66,10 +68,10 @@ def train(args):
   optimizer = torch.optim.SGD(net.parameters(), lr=args.LR, momentum=args.momentum,
                           weight_decay=args.decay, nesterov=args.nesterov)
     
-  scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.schedule, gamma=args.gamma)
+  scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
    
   criterion = wing_loss(args)  
-  # criterion = torch.nn.MSELoss(reduce=True)
+  criterion = torch.nn.MSELoss(reduce=True)
     
   net = net.cuda()
   criterion = criterion.cuda()

@@ -45,10 +45,10 @@ class GeneralDataset(data.Dataset):
     def __getitem__(self, index):
         
         image = cv2.imread(self.data_value[index]['image_path'])
-        print(self.data_value[index]['image_path'])
-        print('+++++++++++++++', image.shape)
         target = self.data_value[index]['meta']
         
+        #print(self.data_value[index]['image_path'])
+        #print(image.shape)
         if self.transform is not None:
             image, target = self.transform(image, target)
          
@@ -59,8 +59,8 @@ class GeneralDataset(data.Dataset):
         mask = points_t[:,2].unsqueeze(1)
         pts_masked = pts*mask
         
-            
-        return image, pts_masked.reshape(1, -1) # x1, y1, x2, y2 ...
+        # print(image.size())    
+        return image, pts_masked.reshape(1, -1), target.get_box()# x1, y1, x2, y2 ... 
         
         
         

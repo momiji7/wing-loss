@@ -13,10 +13,10 @@ def obtain_args():
   parser.add_argument('--scale_prob',       type=float, default=0.2,    help='argument scale probability.')
   parser.add_argument('--scale_min',        type=float, default=0.9,    help='argument scale : minimum scale factor.')
   parser.add_argument('--scale_max',        type=float, default=1.1,    help='argument scale : maximum scale factor.')
-  parser.add_argument('--rotate_max',       type=int,   default=0,     help='argument rotate : maximum rotate degree.')
+  parser.add_argument('--rotate_max',       type=int,   default=30,     help='argument rotate : maximum rotate degree.')
   parser.add_argument('--crop_height',      type=int,   default=256,    help='argument crop : crop height.')
   parser.add_argument('--crop_width',       type=int,   default=256,    help='argument crop : crop width.')
-  parser.add_argument('--crop_perturb_max', type=int,   default=100,     help='argument crop : center of maximum perturb distance.')
+  parser.add_argument('--crop_perturb_max', type=int,   default=10,     help='argument crop : center of maximum perturb distance.')
   parser.add_argument('--arg_flip',         action='store_true',        help='Using flip data argumentation or not ')
   # Optimization options
   parser.add_argument('--eval_once',        action='store_true',        help='evaluation only once for evaluation ')
@@ -29,7 +29,7 @@ def obtain_args():
   parser.add_argument('--workers',          type=int,   default=8,      help='number of data loading workers (default: 2)')
   
   # Optimizer
-  parser.add_argument('--LR',    type=float, default=0.00005,help='Learning rate for optimizer.')
+  parser.add_argument('--LR',               type=float, default=0.00003,help='Learning rate for optimizer.')
   parser.add_argument('--momentum',         type=float, default=0.9,    help='Momentum for optimizer.')
   parser.add_argument('--decay',            type=float, default=0.0005, help='Decay for optimizer.')
   parser.add_argument('--nesterov',         action='store_true',        help='Using nesterov for optimizer.')
@@ -37,11 +37,10 @@ def obtain_args():
   # lr_scheduler
   parser.add_argument('--schedule',         type=int,   nargs='+',      
                      default=[30, 40],                                  help='The list file path to the video training dataset.')
-  parser.add_argument('--gamma',            type=float, default=0.5,    help='Learning rate for optimizer.')
+  parser.add_argument('--gamma',            type=float, default=0.1,    help='Decay for learning rate.')
   # loss
-  parser.add_argument('--wingloss_w',       type=float, default=10,    help='W parameter for optimizer.')
-  parser.add_argument('--wingloss_const',   type=float, default=10,    help='Constant parameter.')
-  parser.add_argument('--wingloss_epsilon', type=float, default=10,    help='Epsilon parameter.')  
+  parser.add_argument('--wingloss_w',       type=float, default=10,     help='W parameter for optimizer.')
+  parser.add_argument('--wingloss_epsilon', type=float, default=2,      help='Epsilon parameter.')  
     
     
   # log file     

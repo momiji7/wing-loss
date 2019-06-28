@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import init
 
 try:
     from torch.hub import load_state_dict_from_url
@@ -214,12 +215,13 @@ class ResNet(nn.Module):
         return x
 
 
+
 def _resnet(arch, block, layers, pretrained, progress, **kwargs):
     model = ResNet(block, layers, **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)
-        model.load_state_dict(state_dict)
+        model.load_state_dict(state_dict, strict=False)
     return model
 
 

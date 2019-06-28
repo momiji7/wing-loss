@@ -65,16 +65,16 @@ class PreCrop(object):
   def __call__(self, img, point_meta):
     ## AugCrop has something wrong... For unsupervised data
 
-    print('precrop', img.shape)
-    print(img)
+ 
     point_meta = point_meta.copy()
-
+    #print(img.shape)
     h, w, _ = img.shape  # h*w*c
     box = point_meta.get_box()
+    #print(box)
     face_ex_w, face_ex_h = (box[2] - box[0]) * self.expand_ratio, (box[3] - box[1]) * self.expand_ratio
     x1, y1 = int(max(math.floor(box[0]-face_ex_w), 0)), int(max(math.floor(box[1]-face_ex_h), 0))
     x2, y2 = int(min(math.ceil(box[2]+face_ex_w), w)), int(min(math.ceil(box[3]+face_ex_h), h))
-
+    #print('x1, y1, x2, y2', x1, y1, x2, y2)
     img = img[y1:y2,x1:x2,:]
     point_meta.set_precrop_wh( img.shape[1], img.shape[0], x1, y1, x2, y2)
     point_meta.apply_offset(-x1, -y1)
@@ -105,11 +105,11 @@ class TrainScale2WH(object):
       cv.image: Rescaled image.
     """
     
-    print('TrainScale2WH', img.shape)
-    print(img)
+ 
     point_meta = point_meta.copy()
 
     h, w, _ = img.shape # h*w*c
+    #print(img.shape)
     ow, oh = self.target_size[0], self.target_size[1]
     point_meta.apply_scale( [ow*1./w, oh*1./h] )
 
@@ -140,7 +140,7 @@ class AugScale(object):
       cv.image: Rescaled image.
     """
     
-    print('augscale', img.shape)
+ 
     point_meta = point_meta.copy()
 
     dice = random.random()
@@ -222,8 +222,7 @@ class AugRotate(object):
       cv.Image: Rotated image.
     """
     
-    print('augrotate', img.shape)
-    print(img)
+
     point_meta = point_meta.copy()
 
     degree = (random.random() - 0.5) * 2 * self.max_rotate_degree
@@ -253,8 +252,6 @@ class AugCrop(object):
     ## 在框中心加干扰并且固定到一个定大小
     
     
-    print('augcrop', img.shape)
-    print(img)
     point_meta = point_meta.copy()
    
 
@@ -270,13 +267,9 @@ class AugCrop(object):
     (h, w) = img.shape[:2]
     if x1 < 0 or y1 < 0 or x2 >= w or y2 >= h:
       pad = max(0-x1, 0-y1, x2-w+1, y2-h+1)
-      print('x1, y1, x2, y2', x1, y1, x2, y2)
-      print('pad', pad)
-      print('h, w', h, w)
       assert pad > 0, 'padding operation in crop must be greater than 0'
       img = cv2.copyMakeBorder(img,pad,pad,pad,pad,cv2.BORDER_CONSTANT,value=self.fill)
-      # 调整到新图像的原点坐标， 旧图像的原点在新图像中是(pad, pad)
-      print('copyMakeBorder', img.shape)
+      # 调整到新图像的原点坐标， 旧图像的原点在新图像中是(pad, pad)    
       x1, x2, y1, y2 = x1 + pad, x2 + pad, y1 + pad, y2 + pad
       point_meta.apply_offset(pad, pad)
       point_meta.apply_bound(img.shape[1], img.shape[0])
@@ -290,11 +283,45 @@ class AugCrop(object):
     #print(point_meta.image_path)
     #print('{} {} {} {}'.format(x1, y1, x2, y2))
     img = img[y1:y2,x1:x2,:]
-    print('x1, y1, x2, y2', x1, y1, x2, y2)
-    print('crop_img', img.shape)
     point_meta.apply_bound(img.shape[1], img.shape[0])
 
     
+    return img, point_meta
+
+
+class AugGaussianBlur(object):
+  """Rotate the given cv.Image at the center.
+  Args:
+    size (sequence or int): Desired output size of the crop. If size is an
+      int instead of sequence like (w, h), a square crop (size, size) is
+      made.
+  """
+
+  def __init__(self, gaussianblur_prob,kernel_size, sigma):
+    assert isinstance(kernel_size, numbers.Number)
+    assert isinstance(sigma, numbers.Number)
+    self.kernel_size = kernel_size
+    self.sigma = sigma
+    self.gaussianblur_prob = gaussianblur_prob
+
+  def __call__(self, img, point_meta):
+    """
+    Args:
+      img (cv.Image): Image to be rotated.
+      point_meta : Point_Meta
+    Returns:
+      cv.Image: Rotated image.
+    """
+    
+
+    point_meta = point_meta.copy()
+
+    dice = random.random()
+    if dice > self.gaussianblur_prob:
+      return img, point_meta
+    
+    img = cv2.GaussianBlur(img, (self.kernel_size, self.kernel_size), self.sigma)
+
     return img, point_meta
 
 
@@ -307,7 +334,7 @@ class ToTensor(object):
   """
   def __call__(self, img, points):
 
-    print('totensor', img.shape)
+ 
     pic = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  #opencv内置 numpy 先调整色彩通道，再调整维度
     img = torch.from_numpy(pic.transpose((2, 0, 1)))
     img = img.float().div(255)

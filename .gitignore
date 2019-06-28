@@ -4,3 +4,4 @@ snapshots
 *.png
 test
 runs
+*.json
