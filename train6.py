@@ -31,14 +31,13 @@ def train(args):
   normalize   = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                       std=[0.229, 0.224, 0.225])
 
-  train_transform  = [transforms.PreCrop(args.pre_crop_expand)]
+  train_transform = [transforms.AugTransBbox(args.transbbox_prob, args.transbbox_percent)]
+  train_transform += [transforms.PreCrop(args.pre_crop_expand)]
   train_transform += [transforms.TrainScale2WH((args.crop_width, args.crop_height))]
-  train_transform += [transforms.AugScale(args.scale_prob, args.scale_min, args.scale_max)]
-  #if args.arg_flip:
-  #  train_transform += [transforms.AugHorizontalFlip()]
+  train_transform += [transforms.AugHorizontalFlip(args.flip_prob)]
   if args.rotate_max:
     train_transform += [transforms.AugRotate(args.rotate_max)]
-  train_transform += [transforms.AugCrop(args.crop_width, args.crop_height, args.crop_perturb_max, mean_fill)]
+  train_transform += [transforms.AugGaussianBlur(args.gaussianblur_prob, args.gaussianblur_kernel_size, args.gaussianblur_sigma)]
   train_transform += [transforms.ToTensor(), normalize]
   train_transform  = transforms.Compose( train_transform )
 
@@ -68,10 +67,10 @@ def train(args):
   optimizer = torch.optim.SGD(net.parameters(), lr=args.LR, momentum=args.momentum,
                           weight_decay=args.decay, nesterov=args.nesterov)
     
-  scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
+  scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.schedule, gamma=args.gamma)
    
   criterion = wing_loss(args)  
-  criterion = torch.nn.MSELoss(reduce=True)
+  # criterion = torch.nn.MSELoss(reduce=True)
     
   net = net.cuda()
   criterion = criterion.cuda()

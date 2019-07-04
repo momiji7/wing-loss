@@ -5,3 +5,6 @@ snapshots
 test
 runs
 *.json
+last_one
+generate_qumeng.py
+pdb

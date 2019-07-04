@@ -17,7 +17,14 @@ def obtain_args():
   parser.add_argument('--crop_height',      type=int,   default=256,    help='argument crop : crop height.')
   parser.add_argument('--crop_width',       type=int,   default=256,    help='argument crop : crop width.')
   parser.add_argument('--crop_perturb_max', type=int,   default=10,     help='argument crop : center of maximum perturb distance.')
-  parser.add_argument('--arg_flip',         action='store_true',        help='Using flip data argumentation or not ')
+  parser.add_argument('--flip_prob',        type=float, default=0.5,    help='argument flip probability.')
+  parser.add_argument('--gaussianblur_prob',type=float, default=0.5,    help='argument gaussianblur probability.')  
+  parser.add_argument('--gaussianblur_kernel_size', type=int,default=5, help='argument gaussianblur kernel_size.') 
+  parser.add_argument('--gaussianblur_sigma',type=float,  default=1,      help='argument gaussianblur sigma.')
+  parser.add_argument('--transbbox_prob',   type=float, default=1,      help='argument transbbox probability.')
+  parser.add_argument('--transbbox_percent',type=float, default=0.025,  help='argument transbbox percent.')
+    
+    
   # Optimization options
   parser.add_argument('--eval_once',        action='store_true',        help='evaluation only once for evaluation ')
   parser.add_argument('--error_bar',        type=float,                 help='For drawing the image with large distance error.')

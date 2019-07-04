@@ -28,7 +28,7 @@ class GeneralDataset(data.Dataset):
         for v in self.data_value:
             landmarks = v['landmarks']
             
-            assert 2*num_pts == len(landmarks), 'The lenght of landmarks {} is not {}'.format(len(landmarks), 2*num_pts)
+            # assert 2*num_pts == len(landmarks), 'The lenght of landmarks {} is not {}'.format(len(landmarks), 2*num_pts)
             target = np.zeros((3, num_pts), dtype='float32')
             for idx in range(num_pts):
                 target[0, idx] = float(landmarks[2*idx])
@@ -51,16 +51,19 @@ class GeneralDataset(data.Dataset):
         #print(image.shape)
         if self.transform is not None:
             image, target = self.transform(image, target)
-         
-        points = target.points.copy()
-        points = torch.FloatTensor(points)
-        points_t = points.t()
-        pts = points_t[:,:2]
-        mask = points_t[:,2].unsqueeze(1)
-        pts_masked = pts*mask
+        
+        if target.points is not None:
+            points = target.points.copy()
+            points = torch.FloatTensor(points)
+            points_t = points.t()
+            pts = points_t[:,:2]
+            mask = points_t[:,2].unsqueeze(1)
+            pts_masked = pts*mask
+        else:
+            pts_masked = torch.zeros(1)
         
         # print(image.size())    
-        return image, pts_masked.reshape(1, -1), target.get_box()# x1, y1, x2, y2 ... 
+        return image, pts_masked.reshape(1, -1) # x1, y1, x2, y2 ... 
         
         
         

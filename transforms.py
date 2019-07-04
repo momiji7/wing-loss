@@ -326,6 +326,40 @@ class AugGaussianBlur(object):
 
 
 
+class AugHorizontalFlip(object):
+  """Rotate the given cv.Image at the center.
+  Args:
+    size (sequence or int): Desired output size of the crop. If size is an
+      int instead of sequence like (w, h), a square crop (size, size) is
+      made.
+  """
+
+  def __init__(self, flip_prob):
+    assert isinstance(flip_prob, numbers.Number)   
+    self.flip_prob = flip_prob
+
+  def __call__(self, img, point_meta):
+    """
+    Args:
+      img (cv.Image): Image to be rotated.
+      point_meta : Point_Meta
+    Returns:
+      cv.Image: Rotated image.
+    """
+    
+    point_meta = point_meta.copy()
+
+    dice = random.random()
+    if dice > self.flip_prob:
+      return img, point_meta
+    
+    img = cv2.flip(img, 1)
+    (h, w) = img.shape[:2]
+    point_meta.apply_horizontal_flip(w)
+
+    return img, point_meta
+
+
 
 class ToTensor(object):
   """

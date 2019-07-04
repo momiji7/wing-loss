@@ -9,14 +9,17 @@ class wing_loss(nn.Module):
         self.w = args.wingloss_w
         self.epsilon = args.wingloss_epsilon
         self.constant = args.wingloss_w - args.wingloss_w * math.log(1 + args.wingloss_w / args.wingloss_epsilon)
+        # print(self.w, self.epsilon, self.constant)
         
     def forward(self, prediction, gt):
         diff = torch.abs(prediction - gt)
-        loss = diff
-        idx =  diff < self.w
         
-        loss[idx] = self.w * torch.log(1 + diff[idx]/self.epsilon)
-        idx = (idx + 1)%2
-        loss[idx] = diff[idx] - self.constant
-        print(loss)
-        return torch.sum(loss)
+        loss = torch.where(diff < self.w, self.w * torch.log(1 + diff/self.epsilon), diff - self.constant)
+        
+        loss = loss.view(-1)
+        
+        #diff = diff.view(-1)
+        #loss = torch.norm(diff)
+        
+               
+        return torch.mean(loss)

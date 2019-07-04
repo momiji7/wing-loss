@@ -30,14 +30,13 @@ def train(args):
   normalize   = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                       std=[0.229, 0.224, 0.225])
 
-  train_transform  = [transforms.PreCrop(args.pre_crop_expand)]
+  train_transform = [transforms.AugTransBbox(args.transbbox_prob, args.transbbox_percent)]
+  train_transform += [transforms.PreCrop(args.pre_crop_expand)]
   train_transform += [transforms.TrainScale2WH((args.crop_width, args.crop_height))]
-  train_transform += [transforms.AugScale(args.scale_prob, args.scale_min, args.scale_max)]
-  #if args.arg_flip:
-  #  train_transform += [transforms.AugHorizontalFlip()]
+  train_transform += [transforms.AugHorizontalFlip(args.flip_prob)]
   if args.rotate_max:
     train_transform += [transforms.AugRotate(args.rotate_max)]
-  train_transform += [transforms.AugCrop(args.crop_width, args.crop_height, args.crop_perturb_max, mean_fill)]
+  train_transform += [transforms.AugGaussianBlur(args.gaussianblur_prob, args.gaussianblur_kernel_size, args.gaussianblur_sigma)]
   train_transform += [transforms.ToTensor(), normalize]
   train_transform  = transforms.Compose( train_transform )
 
@@ -56,14 +55,25 @@ def train(args):
     eval_iloader = torch.utils.data.DataLoader(eval_idata, batch_size=args.batch_size, shuffle=False,
                                                  num_workers=args.workers, pin_memory=True)
     eval_loaders.append(eval_iloader)
-    
+       
     
   net = resnet50(out_classes = args.num_pts*2, pretrained=True)
+ 
+  ct = 0
+  for child in net.children():
+    ct += 1
+    if ct < 7:
+      for param in child.parameters():
+        param.requires_grad = False  
+    
+    
+    
+    
   logger.log("=> network :\n {}".format(net))
     
   logger.log('arguments : {:}'.format(args))
 
-  optimizer = torch.optim.SGD(net.parameters(), lr=args.LR, momentum=args.momentum,
+  optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=args.LR, momentum=args.momentum,
                           weight_decay=args.decay, nesterov=args.nesterov)
     
   scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.schedule, gamma=args.gamma)
@@ -105,7 +115,9 @@ def train(args):
       target = target.squeeze(1)
       inputs = inputs.cuda()
       target = target.cuda()
-        
+      #print(inputs.size())
+      #ssert 1==0
+    
       prediction = net(inputs)
             
       loss = criterion(prediction, target) 
