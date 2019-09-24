@@ -34,7 +34,7 @@ def train(args):
   train_transform = [transforms.AugTransBbox(args.transbbox_prob, args.transbbox_percent)]
   train_transform += [transforms.PreCrop(args.pre_crop_expand)]
   train_transform += [transforms.TrainScale2WH((args.crop_width, args.crop_height))]
-  train_transform += [transforms.AugHorizontalFlip(args.flip_prob)]
+  # train_transform += [transforms.AugHorizontalFlip(args.flip_prob)]
   if args.rotate_max:
     train_transform += [transforms.AugRotate(args.rotate_max)]
   train_transform += [transforms.AugGaussianBlur(args.gaussianblur_prob, args.gaussianblur_kernel_size, args.gaussianblur_sigma)]

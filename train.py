@@ -2,7 +2,10 @@ from tensorboardX import SummaryWriter
 from datasets import GeneralDataset
 import transforms
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from resnet import *
+from resnet import FrozenBatchNorm2d
 from compute_nme import compute_nme
 from basic_args import obtain_args as obtain_basic_args
 import datetime
@@ -10,6 +13,42 @@ from logger import Logger
 from meter import AverageMeter
 from wingloss import wing_loss
 from copy import deepcopy
+
+
+class Model(nn.Module):
+    def __init__(self, num_pts):
+        super(Model, self).__init__()
+        self.base_net = resnet50(pretrained=True)
+        #for p in self.base_net.parameters():
+        #    p.requires_grad = False
+            
+            
+        #for m in self.base_net.modules():
+        #    if isinstance(m, nn.BatchNorm1d) or isinstance(m, nn.BatchNorm2d):
+        #        m.eval()    
+        
+        #self.base_net.fc = nn.Linear(2048, 1000)
+        
+        ct = 0
+        for child in self.base_net.children():
+            if ct < 4:
+                ct += 1
+                for param in child.parameters():
+                    param.requires_grad = False  
+       
+        
+        
+        self.fc1 = nn.Linear(1000, 2*num_pts)
+        #for p in self.base_net.fc.parameters():
+        #   p.requires_grad = True
+    
+    def forward(self, x):
+        x = self.base_net(x)
+        x = self.fc1(F.relu(x))
+        return x
+
+
+
 
 def train(args):
   
@@ -33,7 +72,9 @@ def train(args):
   train_transform = [transforms.AugTransBbox(args.transbbox_prob, args.transbbox_percent)]
   train_transform += [transforms.PreCrop(args.pre_crop_expand)]
   train_transform += [transforms.TrainScale2WH((args.crop_width, args.crop_height))]
-  train_transform += [transforms.AugHorizontalFlip(args.flip_prob)]
+  #train_transform += [transforms.AugHorizontalFlip(args.flip_prob)]
+  #train_transform += [transforms.AugScale(args.scale_prob, args.scale_min, args.scale_max)]
+  #train_transform += [transforms.AugCrop(args.crop_width, args.crop_height, args.crop_perturb_max, mean_fill)]
   if args.rotate_max:
     train_transform += [transforms.AugRotate(args.rotate_max)]
   train_transform += [transforms.AugGaussianBlur(args.gaussianblur_prob, args.gaussianblur_kernel_size, args.gaussianblur_sigma)]
@@ -57,20 +98,11 @@ def train(args):
     eval_loaders.append(eval_iloader)
        
     
-  net = resnet50(out_classes = args.num_pts*2, pretrained=True)
+  net = Model(args.num_pts)
  
-  ct = 0
-  for child in net.children():
-    ct += 1
-    if ct < 7:
-      for param in child.parameters():
-        param.requires_grad = False  
-    
-    
-    
-    
-  logger.log("=> network :\n {}".format(net))
-    
+
+  
+  logger.log("=> network :\n {}".format(net))   
   logger.log('arguments : {:}'.format(args))
 
   optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=args.LR, momentum=args.momentum,
