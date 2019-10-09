@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
+import torch
 
 try:
     from torch.hub import load_state_dict_from_url
@@ -10,6 +11,41 @@ except ImportError:
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152', 'resnext50_32x4d', 'resnext101_32x8d']
+
+class FrozenBatchNorm2d(nn.Module):
+    """
+    BatchNorm2d where the batch statistics and the affine parameters
+    are fixed
+    """
+
+    def __init__(self, n):
+        super(FrozenBatchNorm2d, self).__init__()  
+        # register_buffer 注册一个tensor buffer，但是不是作为模型参数而是持久化状态
+        self.register_buffer("weight", torch.ones(n))
+        self.register_buffer("bias", torch.zeros(n))
+        self.register_buffer("running_mean", torch.zeros(n))
+        self.register_buffer("running_var", torch.ones(n))
+
+    def forward(self, x): # rsqrt 开方后倒数   一些解释 https://github.com/facebookresearch/maskrcnn-benchmark/issues/267 如果不用预训练模型则是恒等映射 否则载入参数后保持不变 拆解一下原来的式子  self.weight---> gamma self.bias ---> belta self.running_var --> sigma self.running_mean ---> mu  问题：这些变量到底在哪里更新运作的
+        scale = self.weight * self.running_var.rsqrt()
+        bias = self.bias - self.running_mean * scale
+        scale = scale.reshape(1, -1, 1, 1)
+        bias = bias.reshape(1, -1, 1, 1)
+        return x * scale + bias
+    
+    
+class BatchNorm2d_para(nn.Module):
+
+
+    def __init__(self, n):
+        super(BatchNorm2d_para, self).__init__()  
+        self.bn = nn.BatchNorm2d(n, momentum=0.7)
+
+
+    def forward(self, x): 
+        return self.bn(x)
+        
+
 
 
 model_urls = {

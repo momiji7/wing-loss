@@ -2,7 +2,9 @@ from tensorboardX import SummaryWriter
 from datasets import GeneralDataset
 import transforms
 import torch
+import torch.nn as nn
 from resnet import *
+from resnet import FrozenBatchNorm2d, BatchNorm2d_para
 from compute_nme import compute_nme
 from basic_args import obtain_args as obtain_basic_args
 import datetime
@@ -10,6 +12,7 @@ from logger import Logger
 from meter import AverageMeter
 from wingloss import wing_loss
 from copy import deepcopy
+
 
 def train(args):
   
@@ -57,17 +60,16 @@ def train(args):
     eval_loaders.append(eval_iloader)
        
     
-  net = resnet50(out_classes = args.num_pts*2, pretrained=True)
+  # net = resnet50(out_classes = args.num_pts*2, pretrained=True, norm_layer = FrozenBatchNorm2d)
+  net = resnet50(out_classes = args.num_pts*2)
  
-  ct = 0
-  for child in net.children():
-    ct += 1
-    if ct < 7:
-      for param in child.parameters():
-        param.requires_grad = False  
-    
-    
-    
+  #ct = 0
+  #for child in net.children():
+  #  if ct < 3:
+  #    ct += 1
+  #    for param in child.parameters():
+  #      param.requires_grad = False  
+       
     
   logger.log("=> network :\n {}".format(net))
     

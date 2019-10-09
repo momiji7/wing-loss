@@ -14,9 +14,9 @@ def generate_json(file_path, save_path):
     contents = load_txt_file(file_path)
     
     data = {}
+    print(len(contents))
     for idx, con in enumerate(contents):
-        if idx > 8:
-            break
+
         con_split = con.split(' ')
         img_path = con_split[0]
         pts_path = con_split[1]
@@ -41,13 +41,15 @@ def generate_json(file_path, save_path):
         fd=open(img_path, "rb")
         fcont=fd.read()
         fmd5=hashlib.md5(fcont)
-        data[fmd5.hexdigest()] = landmarks
+        #data[fmd5.hexdigest()] = landmarks
+        data['{:04d}'.format(idx)] = landmarks
+        
 
     with open(save_path, 'w') as fp:
         json.dump(data, fp)
 
-        
-generate_json('/search/speech/xz/face_alignment/Facetron/data/lists/300W/300w.train.DET', '300w_train_check.json')
+generate_json('/search/speech/xz/face_alignment/Facetron/data/lists/300W/300w.train.DET', '300w_train_before.json')        
+#generate_json('/search/speech/xz/face_alignment/Facetron/data/lists/300W/300w.train.DET', '300w_train.json')
 #generate_json('/search/speech/xz/face_alignment/Facetron/data/lists/300W/300w.test.common.DET', '300w_test_common.json')
 #generate_json('/search/speech/xz/face_alignment/Facetron/data/lists/300W/300w.test.challenge.DET', '300w_test_challenge.json')
 #generate_json('/search/speech/xz/face_alignment/Facetron/data/lists/300W/300w.test.full.DET', '300w_test_full.json')
