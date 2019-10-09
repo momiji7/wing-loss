@@ -12,6 +12,15 @@ class wing_loss(nn.Module):
         # print(self.w, self.epsilon, self.constant)
         
     def forward(self, prediction, gt):
+        
+        #prediction_mask = torch.masked_select(prediction , mask)
+        #gt_mask = torch.masked_select(gt , mask)
+        
+        #print(prediction.size())
+        #print(mask.size())
+        #print(gt.size())
+        #assert 1==0
+        
         diff = torch.abs(prediction - gt)
         
         loss = torch.where(diff < self.w, self.w * torch.log(1 + diff/self.epsilon), diff - self.constant)

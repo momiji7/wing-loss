@@ -1,4 +1,4 @@
-python check.py \
+CUDA_VISIBLE_DEVICES=3, 4 python check.py \
 	--train_lists ./300w_train_check.json \
 	--num_pts 68 \
     --save_path ./snapshots/ \

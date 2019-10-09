@@ -5,6 +5,7 @@ import cv2
 import torch
 import numpy as np
 from point_meta import Point_Meta
+from util import *
 
 class GeneralDataset(data.Dataset):
     
@@ -28,6 +29,8 @@ class GeneralDataset(data.Dataset):
         for v in self.data_value:
             landmarks = v['landmarks']
             
+            
+            
             # assert 2*num_pts == len(landmarks), 'The lenght of landmarks {} is not {}'.format(len(landmarks), 2*num_pts)
             target = np.zeros((3, num_pts), dtype='float32')
             for idx in range(num_pts):
@@ -35,7 +38,9 @@ class GeneralDataset(data.Dataset):
                 target[1, idx] = float(landmarks[2*idx+1])
                 target[2, idx] = 1
             
-            meta = Point_Meta(num_pts, target, v['bbox'])
+            box = box2square(v['bbox'])
+            # box = v['bbox']
+            meta = Point_Meta(num_pts, target, box)
             v['meta'] = meta
     
     def __len__(self):
@@ -51,6 +56,9 @@ class GeneralDataset(data.Dataset):
         #print(image.shape)
         if self.transform is not None:
             image, target = self.transform(image, target)
+            
+        crop_save_wh = target.crop_save_wh
+        cropped_size = torch.IntTensor( [crop_save_wh[1], crop_save_wh[0], crop_save_wh[2], crop_save_wh[3]]) # H, W, Cropped_[x1,y1]
         
         if target.points is not None:
             points = target.points.copy()
@@ -59,11 +67,11 @@ class GeneralDataset(data.Dataset):
             pts = points_t[:,:2]
             mask = points_t[:,2].unsqueeze(1)
             pts_masked = pts*mask
-        else:
-            pts_masked = torch.zeros(1)
-        
+            
+        torch_index = torch.IntTensor([index])
+        mask = mask.type(torch.ByteTensor)
         # print(image.size())    
-        return image, pts_masked.reshape(1, -1) # x1, y1, x2, y2 ... 
+        return image, pts_masked.reshape(1, -1), # mask, cropped_size  # x1, y1, x2, y2 ... 
         
         
         

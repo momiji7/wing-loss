@@ -5,6 +5,6 @@ python eval6.py \
 	--save_path ./snapshots/  \
 	--crop_width 64 --crop_height 64 \
 	--LR 0.00003  \
-	--epochs 320   \
+	--epochs 300   \
 	--schedule 100 200 \
     --nesterov \

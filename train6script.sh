@@ -7,9 +7,9 @@ python train6.py \
 	--save_path ./snapshots/  \
 	--crop_width 64 --crop_height 64 \
 	--LR 0.0003  \
-	--epochs 320   \
-	--schedule 300 \
+	--epochs 300   \
+	--schedule 100 200 \
     --nesterov \
-    --decay 0.0001 \
+    --decay 0.0005 \
     --gaussianblur_kernel_size 3 \
     --transbbox_percent 0.05

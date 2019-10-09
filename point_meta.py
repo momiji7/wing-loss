@@ -111,7 +111,7 @@ class Point_Meta():
     return np.sum(ans)
 
   def set_precrop_wh(self, W, H, x1, y1, x2, y2):
-    self.temp_save_wh = [W, H, x1, y1, x2, y2]
+    self.crop_save_wh = [W, H, x1, y1, x2, y2]
 
   def set_box(self, box):
     self.box = box.copy()    
